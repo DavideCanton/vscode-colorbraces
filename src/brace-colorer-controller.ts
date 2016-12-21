@@ -11,11 +11,11 @@ export class BraceColorerController implements Disposable {
 
         // subscribe to selection change and editor activation events
         let subscriptions: Disposable[] = [];
-        window.onDidChangeTextEditorSelection(this._onEvent, this, subscriptions);
-        window.onDidChangeActiveTextEditor(this._onEvent, this, subscriptions);
-        workspace.onDidChangeConfiguration(this._updateConf, this, subscriptions);
+        window.onDidChangeTextEditorSelection(this.onEvent, this, subscriptions);
+        window.onDidChangeActiveTextEditor(this.onEvent, this, subscriptions);        
+        workspace.onDidChangeConfiguration(this.updateConf, this, subscriptions);    
 
-        this._updateConf();
+        this.updateConf();
         this.colorer.colorize();
 
         // create a combined disposable from both event subscriptions
@@ -26,18 +26,22 @@ export class BraceColorerController implements Disposable {
         this.disposable.dispose();
     }
 
-    private _onEvent() {
+    private onEvent() {
         this.colorer.colorize();
     }
 
-    private _updateConf() {
+    private updateConf() {
         let conf = workspace.getConfiguration();
         let colors = conf.get<IColorData[]>('colorBraces.colors') || [];
+        
+        let default_colors = ["red", "blue", "yellow", "green", "white", "#FF00FF"].map(c => { 
+            return { color: c }; 
+        });
 
-        let errorColor = conf.get<IColorData>('colorBraces.errorColor') || <IColorData>{};
+        let errorColor : IColorData = conf.get('colorBraces.errorColor') || {};
         errorColor.bgcolor = errorColor.bgcolor || "red";
         errorColor.color = errorColor.color || "white";
-        colors = colors.length > 0 ? colors : [{ color: "red" }, { color: "blue" }, { color: "yellow" }, { color: "green" }, { color: "white" }, { color: "#FF00FF" }];
+        colors = colors.length > 0 ? colors : default_colors;
 
         this.colorer.setupColors(colors, errorColor);
     }

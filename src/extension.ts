@@ -1,5 +1,3 @@
-'use strict';
-
 import {ExtensionContext} from 'vscode';
 import {BraceColorerController} from './brace-colorer-controller';
 import {BraceColorer} from './brace-colorer';
