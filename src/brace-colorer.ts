@@ -1,6 +1,6 @@
-import {TextEditorDecorationType, window, DecorationRenderOptions, Range} from 'vscode';
-import {IColorData, IStackElement} from './interfaces';
-import {Stack} from './stack';
+import { TextEditorDecorationType, window, DecorationRenderOptions, Range } from 'vscode';
+import { IColorData, IStackElement } from './interfaces';
+import { Stack } from './stack';
 
 export class BraceColorer {
     public static QUOTES: string = '"\'';
@@ -45,8 +45,8 @@ export class BraceColorer {
         let stack = new Stack<IStackElement>();
         let isInConstant = false;
 
-        let decorations : Range[][] = this.decorations.map(_ => []);
-        let errorDecorations : Range[] = [];
+        let decorations: Range[][] = this.decorations.map(_ => []);
+        let errorDecorations: Range[] = [];
 
         // console.log("-----------------------------------------------------");
 
@@ -62,8 +62,8 @@ export class BraceColorer {
             }
             else if (BraceColorer.is_closed_brace(char) && !isInConstant) {
                 if (stack.length() > 0) {
-                    let {char: elChar, range: elRange } = stack.peek()!;
-                    
+                    let {char: elChar, range: elRange } = stack.peek() !;
+
                     if (BraceColorer.is_corresponding_brace(char, elChar)) {
                         stack.pop();
                         decorations[stack.length() % this.decorations.length].push(elRange);
