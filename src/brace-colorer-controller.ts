@@ -34,9 +34,7 @@ export class BraceColorerController implements Disposable {
         let conf = workspace.getConfiguration();
         let colors = conf.get<IColorData[]>('colorBraces.colors') || [];
         
-        let default_colors = ["red", "blue", "yellow", "green", "white", "#FF00FF"].map(c => { 
-            return { color: c }; 
-        });
+        let default_colors = ["red", "blue", "yellow", "green", "white", "#FF00FF"].map(c => ({ color: c }));
 
         let errorColor : IColorData = conf.get('colorBraces.errorColor') || {};
         errorColor.bgcolor = errorColor.bgcolor || "red";

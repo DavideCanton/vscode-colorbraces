@@ -9,8 +9,11 @@ export class Stack<T> {
         this._elements.push(t);
     }
 
-    pop(): T {
-        return this._elements.pop();
+    pop(): T | null {
+        if(this.length() > 0)
+            return this._elements.pop()!;
+
+        return null;
     }
 
     length(): number {

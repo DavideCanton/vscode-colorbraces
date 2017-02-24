@@ -4,7 +4,7 @@ import {Stack} from './stack';
 
 export class BraceColorer {
     public static QUOTES: string = '"\'';
-    public static BRACES: string = '([{}])';
+    public static BRACES: string = '([{)]}';
 
     private decorations: TextEditorDecorationType[];
     private errorDecoration: TextEditorDecorationType;
@@ -41,14 +41,12 @@ export class BraceColorer {
         let editor = window.activeTextEditor;
         let doc = editor.document;
         let text = doc.getText();
-        let ranges = [];
+        let ranges: Range[] = [];
         let stack = new Stack<IStackElement>();
         let isInConstant = false;
 
-        let decorations = [];
-        for (var i = 0, l = this.decorations.length; i < l; i++)
-            decorations.push([]);
-        let errorDecorations = [];
+        let decorations : Range[][] = this.decorations.map(_ => []);
+        let errorDecorations : Range[] = [];
 
         // console.log("-----------------------------------------------------");
 
