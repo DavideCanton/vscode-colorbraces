@@ -62,7 +62,7 @@ export class BraceColorer {
             }
             else if (BraceColorer.is_closed_brace(char) && !isInConstant) {
                 if (stack.length() > 0) {
-                    let {char: elChar, range: elRange } = stack.peek();
+                    let {char: elChar, range: elRange } = stack.peek()!;
                     
                     if (BraceColorer.is_corresponding_brace(char, elChar)) {
                         stack.pop();

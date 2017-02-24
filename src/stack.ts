@@ -1,7 +1,7 @@
 export class Stack<T> {
     private _elements: T[];
-    
-    constructor(){
+
+    constructor() {
         this._elements = [];
     }
 
@@ -10,8 +10,8 @@ export class Stack<T> {
     }
 
     pop(): T | null {
-        if(this.length() > 0)
-            return this._elements.pop()!;
+        if (this.length() > 0)
+            return this._elements.pop() !;
 
         return null;
     }
@@ -20,10 +20,13 @@ export class Stack<T> {
         return this._elements.length;
     }
 
-    peek(): T {
-        return this._elements[this._elements.length - 1];
+    peek(): T | null {
+        if (this.length() > 0)
+            return this._elements[this._elements.length - 1];
+
+        return null;
     }
-    
+
     elements(): T[] {
         return this._elements;
     }
