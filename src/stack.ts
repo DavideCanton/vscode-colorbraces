@@ -27,7 +27,7 @@ export class Stack<T> {
         return null;
     }
 
-    elements(): T[] {
-        return this._elements;
+    [Symbol.iterator]() {
+        return this._elements[Symbol.iterator]();
     }
 }

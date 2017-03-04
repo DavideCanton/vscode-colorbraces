@@ -1,13 +1,13 @@
 import { TextEditorDecorationType, window, DecorationRenderOptions, Range } from 'vscode';
-import { IColorData, IStackElement } from './interfaces';
+import { IColorData, ElementKind, IScopeElement } from './interfaces';
 import { Stack } from './stack';
+import { StackElement } from './stack_el';
+import * as _ from 'lodash';
 
 export class BraceColorer {
-    public static QUOTES: string = '"\'';
-    public static BRACES: string = '([{)]}';
-
     private decorations: TextEditorDecorationType[];
     private errorDecoration: TextEditorDecorationType;
+    private scopes: IScopeElement[];
 
     setupColors(colors: IColorData[], errorColor: IColorData) {
         this.decorations = colors.map(c => window.createTextEditorDecorationType({ color: c.color }));
@@ -16,33 +16,48 @@ export class BraceColorer {
             backgroundColor: errorColor.bgcolor,
             color: errorColor.color
         });
+
+        this.scopes = [];
     }
 
-    static is_open_brace(c: string): boolean {
-        let index = BraceColorer.BRACES.indexOf(c);
-        return index >= 0 && index < BraceColorer.BRACES.length / 2;
+    _openBrace(element: StackElement, stack: Stack<StackElement>, decorations: Range[][]) {
+        stack.push(element);
+        //console.log("Found " + char + ", stack = " + JSON.stringify(stack));
     }
 
-    static is_closed_brace(c: string): boolean {
-        let index = BraceColorer.BRACES.indexOf(c);
-        return index >= BraceColorer.BRACES.length / 2;
-    }
+    _closedBrace(new_element: StackElement, stack: Stack<StackElement>, decorations: Range[][]): boolean {
+        if (stack.length() > 0) {
+            let el = stack.peek() !;
 
-    static is_corresponding_brace(c: string, opened_brace: string): boolean {
-        let offset = BraceColorer.BRACES.length / 2;
-        return BraceColorer.BRACES.indexOf(c) === BraceColorer.BRACES.indexOf(opened_brace) + offset;
-    }
+            if (new_element.matches_brace(el)) {
+                stack.pop();
 
-    static is_quote(c: string): boolean {
-        return BraceColorer.QUOTES.indexOf(c) >= 0;
+                let index = stack.length() % this.decorations.length;
+                let decoration = this.decorations[index];
+
+                decorations[index].push(el.range);
+                decorations[index].push(new_element.range);
+
+                let range = new Range(el.range.start, new_element.range.end);
+                let scopeEl = <IScopeElement> { decoration: decoration, range: range };
+                this.scopes.push(scopeEl);
+
+                //console.log("Matched " + char + " with " + elChar + ", stack = " + JSON.stringify(stack));
+                return true;
+            }
+        }
+
+        return false;
     }
 
     colorize() {
+        this.scopes.splice(0);
+
         let editor = window.activeTextEditor;
         let doc = editor.document;
         let text = doc.getText();
         let ranges: Range[] = [];
-        let stack = new Stack<IStackElement>();
+        let stack = new Stack<StackElement>();
         let isInConstant = false;
 
         let decorations: Range[][] = this.decorations.map(_ => []);
@@ -55,47 +70,33 @@ export class BraceColorer {
             let error = false;
             let range = new Range(doc.positionAt(i), doc.positionAt(i + 1));
 
-            if (BraceColorer.is_open_brace(char) && !isInConstant) {
-                stack.push({ char: char, range: range });
+            let el = new StackElement(char, range);
 
-                //console.log("Found " + char + ", stack = " + JSON.stringify(stack));
+            if (el.kind === ElementKind.OpenBrace && !isInConstant) {
+                this._openBrace(el, stack, decorations);
             }
-            else if (BraceColorer.is_closed_brace(char) && !isInConstant) {
-                if (stack.length() > 0) {
-                    let {char: elChar, range: elRange } = stack.peek() !;
-
-                    if (BraceColorer.is_corresponding_brace(char, elChar)) {
-                        stack.pop();
-                        decorations[stack.length() % this.decorations.length].push(elRange);
-                        decorations[stack.length() % this.decorations.length].push(range);
-
-                        //console.log("Matched " + char + " with " + elChar + ", stack = " + JSON.stringify(stack));
-                    }
-                    else
-                        error = true;
-
-                }
-                else
-                    error = true;
+            else if (el.kind === ElementKind.ClosedBrace && !isInConstant) {
+                error = error || !this._closedBrace(el, stack, decorations);
             }
-            else if (BraceColorer.is_quote(char)) {
-                let last = stack.length() > 0 ? stack.peek() : null;
-                if (last == null || !last.isQuote || char != last.char) {
-                    if (last != null && char != last.char && isInConstant)
+            else if (el.kind === ElementKind.Quote) {
+                let last = stack.peek();
+
+                if (last == null || last.kind !== ElementKind.Quote || char != last.char) {
+                    if (last != null && el.matches_quote(last) && isInConstant)
                         continue;
 
                     isInConstant = true;
-                    stack.push({ char: char, isQuote: true, range: range });
+                    stack.push(el);
                     //console.log("Found " + char + ", stack = " + JSON.stringify(stack));
                 }
                 else {
-                    if (char == last.char) {
+                    if (el.matches_quote(last)) {
                         stack.pop();
                         isInConstant = false;
                         //console.log("Matched " + char + " with " + last.char + ", stack = " + JSON.stringify(stack));
                     }
                     else {
-                        stack.push({ char: char, isQuote: true, range: range });
+                        stack.push(el);
                         isInConstant = true;
                         //console.log("Found " + char + ", stack = " + JSON.stringify(stack));
                     }
@@ -110,11 +111,15 @@ export class BraceColorer {
             }
         }
 
-        for (let i in decorations) {
-            editor.setDecorations(this.decorations[i], decorations[i]);
+        for (let pair of _.zip<TextEditorDecorationType | Range[]>(this.decorations, decorations)) {
+            editor.setDecorations(<TextEditorDecorationType>pair[0], <Range[]>pair[1]);
         }
 
-        errorDecorations.push(...stack.elements().map(e => e.range));
+        for (let e of stack) {
+            errorDecorations.push(e.range);
+        }
         editor.setDecorations(this.errorDecoration, errorDecorations);
+
+        console.log("Scopes: " + this.scopes.length);
     }
 }

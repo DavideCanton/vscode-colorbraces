@@ -1,12 +1,18 @@
-import {Range} from 'vscode';
+import { TextEditorDecorationType, Range } from 'vscode';
 
 export interface IColorData {
     color?: string,
     bgcolor?: string
 }
 
-export interface IStackElement {
-    char: string,
+export interface IScopeElement {
     range: Range,
-    isQuote?: boolean
+    decoration: TextEditorDecorationType
+}
+
+export enum ElementKind {
+    OpenBrace,
+    ClosedBrace,
+    Quote,
+    Other
 }
